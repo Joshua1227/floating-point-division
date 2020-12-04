@@ -10,10 +10,11 @@ module get_exp(A,B, exp);// this is to get the exponent of the result. depending
   output [7:0]exp;
   assign exp = A-B;
 endmodule
+//ToDo: create a module to normalize the mantissa and divide them. (By normalize I mean make sure the dividend is grater than the divsor and
+//calculate the offset to the exponent if it isn't). the result will be normalizer and the offset to the exponent will be added to the expAbyB value.
 
 
-
-
+//This module is the main module where all the sub modules will be included
 
 module fpdiv(AbyB, DONE, EXCEPTION, InputA, InputB, CLOCK, RESET);
 input CLOCK, RESET;
