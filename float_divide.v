@@ -28,8 +28,8 @@ module division (divisor, dividend, result,clk, done, expo, reset, except, expA,
 
   always @ ( posedge clk, negedge reset) begin // this implements a asynchronous reset (basically in will reset exactly at the time the reset button is pressed)
     if (divisor[31:0] == 32'b0 && expB[7:0] == 8'b0 && done == 1'b0) begin
-      except = 2'b00
-      done = 1'b1
+      except = 2'b00;
+      done = 1'b1;
       result = 23'b0;
       expo = 8'b0;
     end
@@ -39,34 +39,48 @@ module division (divisor, dividend, result,clk, done, expo, reset, except, expA,
       done = 1'b1;
     end
     if(done == 1'b0) begin
-      if (dividend >= divisor) begin
-        dividend = dividend - divisor;
-        dividend << 1;
-        quotient = {quotient[22:0], 1'b1};
-        if (first_bit == 0) begin
-          first_bit = 1'b1;
+      while (quotient[23] != 1'b1) begin
+        if (dividend >= divisor) begin
+          dividend = dividend - divisor;    // here we just subtract the divisor from the dividend and shift the dividend left.
+          dividend << 1;
+          quotient = {quotient[22:0], 1'b1}; // this is to shift the quotient left and add 1 to the lsb.
+          if (first_bit == 1'b0) begin
+            first_bit = 1'b1;
+          end
+        end else begin
+          dividend << 1;
+          quotient = {quotient[22:0], 1'b0};
+          if (first_bit == 1'b0) begin             //until we get the first bit i.e. the first time the divisor is less than the dividend the exponent value will decrease
+            exponent_diff = exponent_diff + 1;
+          end
         end
-      end else begin
-        dividend << 1;
-        quotient = {quotient[22:0], 1'b0};
-        if (first_bit == 0) begin             //until we get the first bit the exponent value will decrease
-          exponent_diff = exponent_diff + 1;
+
+        if (dividend[31:0] == 32'b0 && done == 1'b0) begin
+          while (quotient[23] != 1'b1) begin
+            quotient << 1;
+            if(first_bit == 1'b0) begin           // if we haven got a first_bit by now give output 0.
+              result = 23'b0;
+              expo = 8'b0;
+              done = 1'b1;
+              break;
+            end
+          end
         end
       end
-      get_exp exp_out (.A(expA), .B(expB), .exp(expo));
-
-      expo = expo - exponent_diff;
-      if (expo[7] == 0 && expA >= 128 && expB < 128) begin
-        done = 1'b1;
-        except = "10";
-      end else if (expo[7] == 1 && expA < 128 && expB >= 128) begin
-        done = 1'b1
-        except = "01"
-      end
-      if (quotient[23] == 1) begin
-        result = quotient[22:0];
-
-        done = 1'b1;
+      if (done == 1'b0) begin
+        get_exp exp_out (.A(expA), .B(expB), .exp(expo));
+        expo = expo - exponent_diff;
+        if (expo[7] == 0 && expA >= 128 && expB < 128) begin
+          done = 1'b1;
+          except = 2'b10;
+        end else if (expo[7] == 1 && expA < 128 && expB >= 128) begin
+          done = 1'b1
+          except = 2'b01;
+        end
+        if (quotient[23] == 1) begin
+          result = quotient[22:0];
+          done = 1'b1;
+        end
       end
     end
   end
